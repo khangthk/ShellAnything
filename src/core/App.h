@@ -31,6 +31,7 @@
 #include "IKeyboardService.h"
 #include "IRandomService.h"
 #include "IIconResolutionService.h"
+#include "IProcessLauncherService.h"
 
 #include <string>
 
@@ -155,10 +156,25 @@ namespace shellanything
     void SetIconResolutionService(IIconResolutionService* instance);
 
     /// <summary>
-    /// Get the current application random service.
+    /// Get the current application icon resolution service.
     /// </summary>
     /// <returns>Returns a pointer of the instance that is currently set. Returns NULL if no service is set.</returns>
     IIconResolutionService* GetIconResolutionService();
+
+    /// <summary>
+    /// Set the current application process launcher service.
+    /// </summary>
+    /// <remarks>
+    /// If a service instance is already set, the caller must properly destroy the old instance.
+    /// </remarks>
+    /// <param name="instance">A valid instance of a the service.</param>
+    void SetProcessLauncherService(IProcessLauncherService* instance);
+
+    /// <summary>
+    /// Get the current application process launcher service.
+    /// </summary>
+    /// <returns>Returns a pointer of the instance that is currently set. Returns NULL if no service is set.</returns>
+    IProcessLauncherService* GetProcessLauncherService();
 
     /// <summary>
     /// Test if application is loaded in a test environment (main's tests executable).
@@ -167,10 +183,31 @@ namespace shellanything
     bool IsTestingEnvironment();
 
     /// <summary>
+    /// Get the application's legacy log directory. The returned directory has write access.
+    /// </summary>
+    /// <returns>Returns the path of the legacy directory that was used by the logging framework.</returns>
+    std::string GetLegacyLogsDirectory();
+
+    /// <summary>
     /// Get the application's log directory. The returned directory has write access.
     /// </summary>
     /// <returns>Returns the path of the directory that should be used by the logging framework.</returns>
     std::string GetLogDirectory();
+
+    /// <summary>
+    /// Test if the given directory is valid for logging.
+    /// </summary>
+    /// <returns>Returns true if the directory is valid for logging. Returns false otherwise.</returns>
+    bool IsValidLogDirectory(const std::string& path);
+
+    /// <summary>
+    /// Get the application's configurations legacy directory.
+    /// </summary>
+    /// <remarks>
+    /// Directory was change in issue #108.
+    /// </remarks>
+    /// <returns>Returns the path of the legacy directory of the user's Configuration Files.</returns>
+    std::string GetLegacyConfigurationsDirectory();
 
     /// <summary>
     /// Get the application's configurations directory.
@@ -179,10 +216,23 @@ namespace shellanything
     std::string GetConfigurationsDirectory();
 
     /// <summary>
-    /// Test if the given directory is valid for logging.
+    /// Test if the given directory is valid for reading configurations.
     /// </summary>
-    /// <returns>Returns true if the directory is valid for logging. Returns false otherwise.</returns>
-    bool IsValidLogDirectory(const std::string& path);
+    /// <returns>Returns true if the directory is valid for reading configurations. Returns false otherwise.</returns>
+    bool IsValidConfigDirectory(const std::string& path);
+
+    /// <summary>
+    /// Get the application's bin directory. The bin directory contains all ShellAnything's executables and binaries.
+    /// </summary>
+    /// <returns>Returns the path of the bin directory.</returns>
+    static std::string GetBinDirectory();
+
+    /// <summary>
+    /// Get the application's installation directory. The installation directory is the root directory selected when the application was installed.
+    /// When running in debug mode or within a development environment, the installation directory is set to the parent directory of `${CMAKE_BIN_DIR}\build\bin\Debug`.
+    /// </summary>
+    /// <returns>Returns the path of the installation directory.</returns>
+    static std::string GetInstallDirectory();
 
     /// <summary>
     /// Initialize and start the application ready for usage.
@@ -196,6 +246,18 @@ namespace shellanything
     /// </summary>
     /// <param name="dest_dir">The destination directory.</param>
     void InstallDefaultConfigurations(const std::string& dest_dir);
+
+    /// <summary>
+    /// Moved any Configuration Files from the legacy directory to the official configurations directory.
+    /// The term legacy refers to version 0.9.0 and older.
+    /// </summary>
+    void ClearLegacyConfigurationDirectory();
+
+    /// <summary>
+    /// Delete any log files from the legacy logs directory.
+    /// The term legacy refers to version 0.9.0 and older.
+    /// </summary>
+    void ClearLegacyLogsDirectory();
 
     /// <summary>
     /// Initialize the Configuration Manager to the user's stall the original configuration files to the specified destination directory.
@@ -216,6 +278,7 @@ namespace shellanything
     IKeyboardService* mKeyboard;
     IRandomService* mRandom;
     IIconResolutionService* mIconResolutionService;
+    IProcessLauncherService* mProcessLauncherService;
   };
 
 

@@ -14,6 +14,7 @@ set(SHELLANYTHING_CORE_HEADER_FILES ""
   ${CMAKE_SOURCE_DIR}/src/core/ConfigFile.h
   ${CMAKE_SOURCE_DIR}/src/core/ConfigManager.h
   ${CMAKE_SOURCE_DIR}/src/core/SelectionContext.h
+  ${CMAKE_SOURCE_DIR}/src/core/ConsoleLoggerService.h
   ${CMAKE_SOURCE_DIR}/src/core/DefaultSettings.h
   ${CMAKE_SOURCE_DIR}/src/core/Environment.h
   ${CMAKE_SOURCE_DIR}/src/core/Icon.h
@@ -23,6 +24,7 @@ set(SHELLANYTHING_CORE_HEADER_FILES ""
   ${CMAKE_SOURCE_DIR}/src/core/ILiveProperty.h
   ${CMAKE_SOURCE_DIR}/src/core/IClipboardService.h
   ${CMAKE_SOURCE_DIR}/src/core/ILoggerService.h
+  ${CMAKE_SOURCE_DIR}/src/core/IProcessLauncherService.h
   ${CMAKE_SOURCE_DIR}/src/core/IRandomService.h
   ${CMAKE_SOURCE_DIR}/src/core/IRegistryService.h
   ${CMAKE_SOURCE_DIR}/src/core/KeyboardHelper.h
@@ -54,6 +56,7 @@ add_library(sa.core SHARED
   ConfigFile.cpp
   ConfigManager.cpp
   SelectionContext.cpp
+  ConsoleLoggerService.cpp
   DefaultSettings.cpp
   FileMagicManager.h
   FileMagicManager.cpp
@@ -68,6 +71,7 @@ add_library(sa.core SHARED
   ILiveProperty.cpp
   IClipboardService.cpp
   ILoggerService.cpp
+  IProcessLauncherService.cpp
   IRandomService.cpp
   IRegistryService.cpp
   KeyboardHelper.cpp
@@ -110,17 +114,17 @@ source_group("Default Configuration Files"          FILES ${CONFIGURATION_DEFAUL
 # Copy default configuration files database to target dir
 add_custom_command( TARGET sa.core POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    ${CMAKE_SOURCE_DIR}/resources/configurations $<TARGET_FILE_DIR:sa.core>/configurations
+                    ${CMAKE_SOURCE_DIR}/resources/configurations $<TARGET_FILE_DIR:sa.core>/../resources/configurations
                     COMMENT "Copying default configurations files database.")
 
 # Copy registration and unregistration scripts to target dir
 add_custom_command( TARGET sa.core POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    ${CMAKE_SOURCE_DIR}/resources/register.bat $<TARGET_FILE_DIR:sa.core>/register.bat
+                    ${CMAKE_SOURCE_DIR}/resources/installer/bin/register.bat $<TARGET_FILE_DIR:sa.core>/register.bat
                     COMMENT "Copying register.bat script.")
 add_custom_command( TARGET sa.core POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    ${CMAKE_SOURCE_DIR}/resources/unregister.bat $<TARGET_FILE_DIR:sa.core>/unregister.bat
+                    ${CMAKE_SOURCE_DIR}/resources/installer/bin/unregister.bat $<TARGET_FILE_DIR:sa.core>/unregister.bat
                     COMMENT "Copying unregister.bat script.")
 
 # Copy files and other dependencies to target dir

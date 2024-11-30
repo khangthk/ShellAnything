@@ -46,7 +46,7 @@ This manual includes a description of the system functionalities and capabilitie
   * [Multi-selection-based properties](#multi-selection-based-properties)
   * [Fixed properties](#fixed-properties)
   * [Default properties](#default-properties)
-* [Environment variables](#environment-variables)
+* [Environment Variables options](#environment-variables-options)
 * [Tools](#tools)
   * [file_explorer_renew](#file_explorer_renew)
   * [arguments.debugger](#argumentsdebugger)
@@ -79,6 +79,7 @@ This manual includes a description of the system functionalities and capabilitie
 * [Troubleshooting](#troubleshooting)
   * [Logging support](#logging-support)
   * [Checkout the _Tools_ section](#tools)
+  * [Change the rendering order of your system's shell extension menus](#change-the-rendering-order-of-your-systems-shell-extension-menus)
   * [Missing ampersand character (`&`) in menus](#missing-ampersand-character--in-menus)
   * [Reporting bugs](#reporting-bugs)
 
@@ -168,13 +169,15 @@ A *configuration file* contains the definition of all [&lt;menu&gt;](#Menu) elem
 
 When a user right-click on a file in *Windows Explorer*, the application will load all available *configuration files* and display their content into the displayed context menu.
 
-The list of *Configuration Files* is unique for each users of the system. The files are stored in `C:\Users\%USERNAME%\ShellAnything` directory where `%USERNAME%` is your current Windows session *username*. Note that *Windows Explorer* also support copy & pasting `C:\Users\%USERNAME%\ShellAnything` into an *address bar* to quickly jump to the directory.
+The list of *Configuration Files* is unique for each users of the system. The files are stored in `C:\Users\%USERNAME%\ShellAnything\configurations` directory where `%USERNAME%` is your current Windows session *username*. Note that you can paste `C:\Users\%USERNAME%\ShellAnything\configurations` into an *address bar* of *Windows Explorer* to quickly jump to the directory.
 
 The application support multiple *configuration files* at the same time. One can add new files in the *configuration directory* and the system will automatically detect and load them.
 
 When a *configuration file* is deleted, the application automatically detect the missing file and properly unload the associated menus which stop displaying their content.
 
 To temporary disable a *configuration file*, one can simply change the file extension from `xml` to `txt`. Change the file extension back to `xml` to re-enable the file.
+
+**Note:** The *Configuration Files* directory can be modified with the `SA_OPTION_CONFIGURATIONS_DIR` environment variable option. See [Environment Variables options](#environment-variables-options) section for details.
 
 
 
@@ -706,6 +709,9 @@ The application support multiple types of actions. The list of each specific act
 
 The &lt;exec&gt; element is used to launch an application. The &lt;exec&gt; element must be added under the &lt;actions&gt; element.
 
+**Note:**
+When a process is created, ShellAnything will set property `process.id` to the process id of the new launched application.
+
 The &lt;exec&gt; elements have the following attributes:
 
 
@@ -754,7 +760,7 @@ For example, the following launch `cmd.exe` and list files and directories recur
 ```
 
 **Note:**
-It is recommanded to use the `wait` attribute with the `timeout` attribute. Without a _timeout_ value, ShellAnything will wait indefinitely until the launched process exits. This can result in system instability. If the launced process freezes, pauses or never exists, it will lock _ShellAnything_ and _File Explorer_.
+It is recommanded to use the `wait` attribute with the `timeout` attribute. Without a _timeout_ value, ShellAnything will wait indefinitely until the launched process exits. This can result in system instability. If the launced process freezes, pauses or never exists, it will lock _ShellAnything_ and _File Explorer_ forever.
 
 When combined with other elements, the `wait` attribute allows advanced use case.
 
@@ -773,6 +779,7 @@ Tell ShellAnything to wait until the search is complete before proceeding to the
 
 
 
+
 #### timeout attribute: ####
 
 The `timeout` attribute defines the maximum time to wait in seconds with the `wait` attribute. If the running process fails to exit before the _timeout_ value, a warning is logged and the next actions of the menu are not executed. The value must be numerical. The attribute is optional.
@@ -782,6 +789,34 @@ For example, the following launch `cmd.exe` and list files and directories recur
 <exec path="cmd.exe" wait="true" timeout="60" arguments="/C dir /a /s /b C:\*.*>&quot;${env.TEMP}\files_in_c_drive.txt&quot;" />
 ```
 
+
+
+#### console attribute: ####
+
+The `console` attribute defines how we should display the main window of the launched application. The attribute allow console applications to be launched without a console. The feature is particularly useful for running background tasks. The attribute must be set to a value that evaluates to `false` to enable the feature. See [istrue attribute](https://github.com/end2endzone/ShellAnything/blob/master/UserManual.md#istrue-attribute) or [isfalse attribute](https://github.com/end2endzone/ShellAnything/blob/master/UserManual.md#isfalse-attribute) logic for details. The attribute is optional.
+
+For example, the following will launch ImageMagick `magick.exe` command line application to convert webp images to jpg :
+```xml
+<exec wait="true" console="off" path="${imagemagick.path}" arguments="&quot;${selection.path}&quot; &quot;${selection.filename.noext}.jpg&quot;" />
+```
+The conversion to JPEG format will be performed without showing a console and no window flickering will be visible.
+
+**Note:**
+* The _console_ attribute may also affects windowed applications and may hide their main graphical user interface.
+* Users must be careful when launching background applications (hidden applications). A background application should not wait for user input or it may never complete/terminate gracefully. Background tasks can also cause system instability if the `wait` attribute is also set and the background process freezes, pauses or never exists because it will lock _ShellAnything_ and _File Explorer_ forever.
+
+
+
+#### pid attribute: ####
+
+The `pid` attribute defines the name of the property to set with the new launch process id.
+
+For example, the following will sets the property `mspaint.process.id` to the process id of `mspaint.exe` :
+```xml
+<exec path="C:\Windows\System32\mspaint.exe" pid="mspaint.process.id" />
+```
+
+The target property is left untouched if the process cannot be launched.
 
 
 #### verb attribute: ####
@@ -1688,9 +1723,21 @@ The system will generates the following property values (note the `\r\n` charact
 
 If you need more flexibility when dealing with multiple files, the system defines the property `selection.multi.separator` that allows customizing the separator when combining multiple files.
 
-By default, this property is set to the value `\r\n` (new line)  when the application initialize.
+By default, this property is set to the value `\r\n` (new line) when the application initialize.
 
-The property can be modified at any time using a [&lt;property&gt;](#property-action) action for changing the property when a menu is executed or with the  [&lt;default&gt;](#default) element to change the value globally (when the `Configuration File` is loaded).
+The property can be modified at any time using a [&lt;property&gt;](#property-action) action or with the [&lt;default&gt;](#default) element to change it globally.
+
+If you mostly need the opposite of the default behavior (double-quotes instead of CRLF), override the value of the property globally when the `Configuration File` is loaded : 
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <shell>
+    <default>
+      <property name="selection.multi.separator" value="&quot; &quot;" />
+    </default>
+  </shell>
+</root>
+```
 
 To reset the property back to the default value, use the following &lt;property&gt; action:
 ```xml
@@ -1699,7 +1746,7 @@ To reset the property back to the default value, use the following &lt;property&
 
 **Example #1:**
 
-If an executable must get the list of selected files in a single command line (one after the other), one can set the property `selection.multi.separator` to  `" "` (double quote, space, double quote) and use the string `"${selection.path}"` (including the double quotes) to get the required expanded value:
+If an executable must get the list of selected files in a single command line (one after the other), one can temporary set the property `selection.multi.separator` to `" "` (double quote, space, double quote) and use the string `"${selection.path}"` (including the double quotes) to get the required expanded value:
 
 ```xml
 <actions>
@@ -1708,13 +1755,15 @@ If an executable must get the list of selected files in a single command line (o
   <property name="selection.multi.separator" value="${line.separator}" />
 </actions>
 ```
+
 Which result in the following expanded value:
 ```
 "C:\Program Files (x86)\Winamp\libFLAC.dll" "C:\Program Files (x86)\Winamp\winamp.exe" "C:\Program Files (x86)\Winamp\zlib.dll"
 ```
+
 **Example #2:**
 
-Assume that you want to run a specific command on each of the selected files (for example reset the files attributes), one can set the property `selection.multi.separator` to  `${line.separator}attrib -r -a -s -h "` (including the ending double quote character) and use the string `attrib -r -a -s -h "${selection.filename}"` (including the double quotes) to get the following expanded value:
+Assume that you want to run a specific command on each of the selected files (for example reset the files attributes), one can set the property `selection.multi.separator` to `${line.separator}attrib -r -a -s -h "` (including the ending double quote character) and use the string `attrib -r -a -s -h "${selection.filename}"` (including the double quotes) to get the following expanded value:
 ```
 attrib -r -a -s -h "C:\Program Files (x86)\Winamp\libFLAC.dll"
 attrib -r -a -s -h "C:\Program Files (x86)\Winamp\winamp.exe"
@@ -1775,7 +1824,7 @@ For example, the following would define `services.wce.command.start` and `servic
 
 
 
-# Environment variables #
+# Environment Variables options #
 
 ShellAnything default startup behavior can be modified by setting specific pre-defined environment variables. Some features or configuration options can also be enabled or disabled through environment variables. For example, one can define an environment variables to enable verbose logging.
 
@@ -1787,10 +1836,11 @@ All ShellAnything environment variables names are prefixed with `SA_`.
 
 The following table defines the list of pre-defined environment variables for ShellAnything:
 
-| Name                           | Description                                                                                                        |
-|--------------------------------|--------------------------------------------------------------------------------------------------------------------|
-| SA_OPTION_LOGGING_VERBOSE      | Enables [verbose logging](#verbose-logging) when set to a value that evaluates to [true](#istrue-attribute).       |
-
+| Name                           | Description                                                                                                          |
+|--------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| SA_OPTION_LOGGING_VERBOSE      | Enables [verbose logging](#verbose-logging) when set to a value that evaluates to [true](#istrue-attribute).         |
+| SA_OPTION_CONFIGURATIONS_DIR   | Set to a custom value to change/override the directory where [Configuration Files](#configuration-files) are stored. |
+| SA_OPTION_LOGS_DIR             | Set to a custom value to change/override the directory where [Log Files](#logging-support) are stored.               |
 
 
 
@@ -2604,8 +2654,9 @@ ShellAnything provides logging support for troubleshooting and debugging command
 
 The logging directory is unique for each users of the system.
 
-The log files are stored in `C:\Users\%USERNAME%\ShellAnything\Logs` directory where `%USERNAME%` matches your current login username.
-For example, the user `JohnSmith` can find his own ShellAnything log files in directory `C:\Users\JohnSmith\ShellAnything\Logs`.
+The log files are stored in `%LOCALAPPDATA%\ShellAnything\logs` directory. For example, the user `JohnSmith` can find his own ShellAnything log files in directory `C:\Users\JohnSmith\AppData\Local\ShellAnything\logs`.
+
+**Note:** The logging directory can be modified with the `SA_OPTION_LOGS_DIR` environment variable option. See [Environment Variables options](#environment-variables-options) section for details.
 
 
 
@@ -2680,6 +2731,33 @@ The verbose mode can be enabled (or disabled) with the following option :
 If both options are specified, the environment variable has priority. 
 
 If no option is specified, verbose mode is disabled.
+
+
+
+## Change the rendering order of your system's shell extension menus ##
+
+ShellAnything does not control in which order the system renders all the registered Shell Extensions. Because of this, your ShellAnything menus could be rendered at the top, middle or the end of Window's Context menu.
+
+This behavior can however be altered.
+
+**Note:**
+Changing the default order of ShellAnything's menu is not officially supported by ShellAnything. The feature is documented as working on Windows 10 (22H2 or later) and Windows 11. This is basically a hack. The method is added to ShellAnything's documentation because some users have a need for it.
+
+Windows renders the registered Shell Extension alphabetically. For example, to change the rendering order of Shell Extensions for directories, you need to rename the desired shell extension's registry key in `HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shellex\ContextMenuHandlers`.
+
+For example: you could rename the registry key `HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shellex\ContextMenuHandlers\ShellAnything` to change ShellAnything's menu order in a Windows context menu. You can rename the key to `!ShellAnything` to have ShellAnything's menus rendered to the top of the context menu. Or you can rename the registry key to `ΩShellAnything` to move ShellAnything's menus to the bottom of the context menu.
+
+This feature is not officially supported. If you unregister or uninstall ShellAnything, the renamed registry key will not be deleted from your system. If you re-register ShellAnything then two registry keys referencing ShellAnything will be registered on the system (`!ShellAnything` and `ShellAnything`). This could lead to adding the menus twice to the context menu.
+
+Another downside is that you need to do this for every locations in the registry where ShellAnything is registered as a shell extension:
+
+* `*` (star character)
+* `Directory`
+* `Directory\Background`
+* `Folder`
+* `Drive`
+
+There is also shell extensions registered under `AllFilesystemObjects` (_HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AllFilesystemObjects\shellex\ContextMenuHandlers_). ShellAnything do not register itself to this file system element. This could create confusion on the rendering order of context menus since `Directory` may (or may not) have priority over `AllFilesystemObjects`.
 
 
 
